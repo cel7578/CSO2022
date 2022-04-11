@@ -239,10 +239,12 @@ int isLessOrEqual(int x, int y)
  *   Max ops: 12
  *   Rating: 4 
  */
-int logicalNeg(int x) {
+int logicalNeg(int x)
+{
   //If x != 0, using | with its negation would return -1 as a sign bit. Then by adding one, that returns 0. If x=0, the same series would be 0+1, which =1
-  return ((x|(~x+1))>>31)+1;
- }
+	return ((x | (~x + 1)) >> 31) + 1;
+}
+
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
  *  Examples: howManyBits(12) = 5
@@ -317,25 +319,25 @@ unsigned float_twice(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
-int sign = x & (1 << 31);
-int exp = 31;
-int bias = 127;
-int frac;
-if (!x)
-   return 0;
-if (x == 1 << 31)
-   return 1 << 31 | ((exp + bias) << 23);
-if (sign)
-   x = ~x + 1;
-while (!(x & 1 << 31))
-{
-   x <<= 1;
-   exp -= 1;
-}
-frac = (((~(1 << 31)) & x) >> 8);
-if (x & 0x80 && ((frac & 1) ||((x & 0x7f) > 0)))
-   frac++;
-   return sign + ((exp + bias) << 23) + frac;
+	int sign = x & (1 << 31);
+	int exp = 31;
+	int bias = 127;
+	int frac;
+	if (!x)
+   		return 0;
+	if (x == 1 << 31)
+   		return x | ((exp + bias) << 23);
+	if (sign)
+   		x = ~x + 1;
+	while (!(x & 1 << 31))
+	{	
+   		x <<= 1;
+   		exp -= 1;
+	}	
+	frac = (((~(1 << 31)) & x) >> 8);
+	if (x & 0x80 && ((frac & 1) ||((x & 0x7f) > 0)))
+   		frac++;
+   	return sign + ((exp + bias) << 23) + frac;
 }
 /* 
  * float_f2i - Return bit-level equivalent of expression (int) f
@@ -351,20 +353,36 @@ if (x & 0x80 && ((frac & 1) ||((x & 0x7f) > 0)))
  */
 int float_f2i(unsigned uf) 
 {
-  int sign   = uf>>31;
-  int exp  = ((uf&0x7f800000)>>23);
-  int e = exp - 127
-  int frac = (((~(1 << 31)) & x) >> 8);
+	unsigned sign = uf >> 31;
+	unsigned exp = (uf >> 23) & 0xFF;
+	unsigned frac = (uf & 0x7FFFFF);
+	unsigned bias = 0x7F;
+	unsigned res;
+	
+	//Nan or infinity
+	if(exp == 0xFF)
+		return 0x80000000u;
+	//for denormalized
+	if(exp < bias)
+		return 0;
+	//for normalized
+	exp -= bias;
 
-  if(e > 31 || exp ==255) 
-  	return 0x80000000u;
-  if(e < 0 || exp == 0) 
-  	return 0;
+	//overflow
+	if (exp>=31)
+		return 0x80000000u;
+	if(exp >22)
+		res = frac << (exp-23);
+	else
+		res = frac >> (23-exp);
+	
+	//add 2*exp for normalized case
+	res += 1<<exp;
 
-  if(!((frac>>31)^sign)) 
-  	return frac;
-  else if(frac>>31) 
-  	return 0x80000000;
-  return ~frac+1;
+	//if sign bit = 1, becomes negative
+	if(sign ==1)
+		res *=-1;
+	return res;
+		
 }
 
